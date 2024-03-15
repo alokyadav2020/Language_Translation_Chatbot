@@ -9,7 +9,7 @@ app = Flask(__name__)
 # engine = pyttsx3.init()
 
 
-directory = r"D:\Client_pro\Fiverr\Language_Translation\artifacts"
+directory ="artifacts"
 filename = "fb_model"
 
 # Create the full path using os.path.join()
