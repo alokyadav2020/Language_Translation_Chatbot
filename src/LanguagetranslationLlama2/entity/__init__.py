@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 
-@dataclass(frozen=True)
+@dataclass()
 class Model_Tokenizer:
     Model: None
     Tokenizer:None

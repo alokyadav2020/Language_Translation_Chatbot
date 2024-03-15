@@ -1,24 +1,17 @@
 from flask import Flask, render_template, jsonify, request
-from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
-import os
-# import pyttsx3
+from src.LanguagetranslationLlama2.conponents.Text_Text_Translation import Text_Translation
+from src.LanguagetranslationLlama2.config.configuration import ConfigurationManager
+from googletrans import Translator
+
+obj = Text_Translation()
+translator = Translator()
+
+
 
 
 app = Flask(__name__)
 
 # engine = pyttsx3.init()
-
-
-directory = r"D:\Client_pro\Fiverr\Language_Translation\artifacts"
-filename = "model"
-
-# Create the full path using os.path.join()
-model_path = os.path.join(directory, filename)
-
-model = MBartForConditionalGeneration.from_pretrained(model_path)
-tokenizer = MBart50TokenizerFast.from_pretrained(model_path, src_lang="en_XX")
-
-
 
 
 @app.route("/")
@@ -33,17 +26,29 @@ def chat():
     input = msg
     print(input)
 
-    model_inputs = tokenizer(input, return_tensors="pt")
-    generated_tokens = model.generate(**model_inputs, forced_bos_token_id=tokenizer.lang_code_to_id["hi_IN"])
-    result  = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+    language = translator.detect(input)
+
+    print(language.lang)
+
+    if language.lang == 'en':
+         result  = obj.Text_2_Text_Translate(input,src_lang="eng",tgt_lang="hin")
+
+    elif language.lang == 'hi':
+        result  = obj.Text_2_Text_Translate(input,src_lang="hin",tgt_lang="eng")    
+
+
+
+
+    print("Response : ", result)
+
+
+   
     
-    print("Response : ", result[0])
-    
-    return str(result[0])
+    return str(result)
 
 
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port= 8080, debug= True)
+    app.run(host="0.0.0.0", port= 8080)
 
 
