@@ -34,7 +34,7 @@ def chat():
     print(input)
 
     text_inputs = processor(text = input, src_lang="eng", return_tensors="pt")
-    output_tokens = model.generate(**text_inputs, tgt_lang="hin")
+    output_tokens = model.generate(**text_inputs, tgt_lang="arb")
     result  = processor.decode(output_tokens[0].tolist(), skip_special_tokens=True)
     
     print("Response : ", result)
