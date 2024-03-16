@@ -2,6 +2,7 @@ from transformers import SeamlessM4TForTextToText,SeamlessM4TForSpeechToText,Sea
 
 from src.LanguagetranslationLlama2.constants import DIRECTORY,FILENAME
 import os
+import torch
 
 
 class Text_Translation:
@@ -9,6 +10,7 @@ class Text_Translation:
         # self.M_T_Config = Model_Tokenizer_config
 
         model_path = os.path.join(DIRECTORY, FILENAME)
+        self.device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
         # self.M_T_Config.Tokenizer = AutoProcessor.from_pretrained(model_path)
         # self.M_T_Config.Model = SeamlessM4TForTextToText.from_pretrained(model_path)
@@ -26,8 +28,12 @@ class Text_Translation:
 
 
     def Text_2_Text_Translate(self,text_input ,src_lang:str, tgt_lang:str):
-        text_inputs = self.Processor(text = text_input, src_lang=src_lang, return_tensors="pt")
-        output_tokens = self.T2TT_Model.generate(**text_inputs, tgt_lang=tgt_lang)
+
+        
+        print(self.device)
+        self.T2TT_Model.to(self.device)
+        text_inputs = self.Processor(text = text_input, src_lang=src_lang, return_tensors="pt").to(self.device)
+        output_tokens = self.T2TT_Model.generate(**text_inputs, tgt_lang=tgt_lang).to(self.device)
         result  = self.Processor.decode(output_tokens[0].tolist(), skip_special_tokens=True)
 
         return result
