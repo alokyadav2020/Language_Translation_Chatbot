@@ -1,8 +1,10 @@
 from flask import Flask, render_template, jsonify, request,send_file
+from werkzeug.utils import secure_filename
 from src.LanguagetranslationLlama2.conponents.Text_Text_Translation import Text_Translation
 from src.LanguagetranslationLlama2.config.configuration import ConfigurationManager
 from src.LanguagetranslationLlama2.entity import DataTransfer
 from flask_cors import CORS
+from pydub import AudioSegment
 import dataclasses
 from pathlib import Path
 from datetime import datetime
@@ -11,11 +13,11 @@ import os
 from googletrans import Translator
 import speech_recognition as sr
 
-rec = sr.Recognizer()
-# translator = Translator()
+# rec = sr.Recognizer()
+
 
 obj_T2T = Text_Translation()
-# translator = Translator()
+
 
 
 # @dataclasses.dataclass
@@ -32,6 +34,7 @@ obj_T2T = Text_Translation()
 
 app = Flask(__name__)
 CORS(app)
+
 
 
 dt = DataTransfer()
@@ -67,7 +70,7 @@ def send():
             return ""
         
         file = request.files["audio_file"]
-        file.headers["Access-Controll-Allow-Origin"]="*"
+       
         if file:
             # dt.AUDI_FILE_S2C = file
 
@@ -92,12 +95,15 @@ def sendfromclient():
             transfer_msg()
             return "" 
         file = request.files["audio_file"]
-        file.headers["Access-Controll-Allow-Origin"]="*"
+        # file.headers["Access-Controll-Allow-Origin"]="*"
         if file:
-            # dt.AUDI_FILE = file
-            print("file get")
             uniqfilename = str(datetime.now().timestamp()).replace(".","")
-            file.save(f"Data/{uniqfilename}.wav")
+           
+            with open(f"Data/{uniqfilename}.wav", 'wb') as f:
+                f.write(file.read())
+
+
+            # file.save(f"Data/{uniqfilename}.wav")
             dt.AUDI_FILE = f"Data/{uniqfilename}.wav"
             print(f"file name from sendfronclientapi is {dt.AUDI_FILE}")
         
@@ -110,15 +116,15 @@ async def recieve_file():
     try:
         if dt.AUDI_FILE_S2C != None:
             audifile = transfer_audiofile_to_client()
-            adfile = obj_T2T.Speech_2_Speech_Translate(audio_arrey=audifile,tgt_lang="hin")
+            # adfile = obj_T2T.Speech_2_Speech_Translate(audio_arrey=audifile,tgt_lang="hin")
             dt.AUDI_FILE_S2C = None
-            audifile = None
-            return send_file(adfile)
+            
+            return send_file(audifile)
         if os.path.exists(audifile):
             os.remove(audifile)
     except Exception as e:
         dt.AUDI_FILE_S2C = None
-        adfile =None
+        # adfile =None
         audifile = None
         raise e        
         
@@ -132,7 +138,7 @@ async def recieve():
             return  {"Message":"file001234"}
         
         if dt.MESSAGE_TRANSFER != "":
-            msg = obj_T2T.Text_2_Text_Translate(text_input = dt.MESSAGE_TRANSFER,tgt_lang="hin")
+            msg = obj_T2T.Text_2_Text_Translate(text_input = dt.MESSAGE_TRANSFER,tgt_lang="arb")
             dt.MESSAGE_TRANSFER = ""
             return {"Message":msg}
         else:
@@ -151,16 +157,16 @@ async def   recievefromclinet_file():
     try:
         if dt.AUDI_FILE != None:
             audifile = transfer_audiofile()
-            adfile = obj_T2T.Speech_2_Speech_Translate(audio_arrey=audifile,tgt_lang="eng")
+            # adfile = obj_T2T.Speech_2_Speech_Translate(audio_arrey=audifile,tgt_lang="eng")
             dt.AUDI_FILE = None
-            audifile = None
-            return  send_file(adfile)
+            # audifile = None
+            return  send_file(audifile)
         if os.path.exists(audifile):
             os.remove(audifile)
     except Exception as e:
         dt.AUDI_FILE = None
         audifile = None
-        adfile = None
+        # adfile = None
         raise e        
 
     
