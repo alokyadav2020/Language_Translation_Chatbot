@@ -92,7 +92,7 @@ def sendfromclient():
             msg = request.form["send_msg"]
             dt.MESSAGE_RECIEVE = msg
             print(f"this message is fron send api {dt.MESSAGE_RECIEVE}")
-            transfer_msg()
+            transfer_msg_toclient()
             return "" 
         file = request.files["audio_file"]
         # file.headers["Access-Controll-Allow-Origin"]="*"
