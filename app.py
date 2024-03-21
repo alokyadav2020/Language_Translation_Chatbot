@@ -138,8 +138,10 @@ async def recieve():
             return  {"Message":"file001234"}
         
         if dt.MESSAGE_TRANSFER != "":
-            msg = obj_T2T.Text_2_Text_Translate(text_input = dt.MESSAGE_TRANSFER,tgt_lang="arb")
+            msg_tra = transfer_msg()
             dt.MESSAGE_TRANSFER = ""
+            msg = obj_T2T.Text_2_Text_Translate(text_input = msg_tra,tgt_lang="arb")
+            
             return {"Message":msg}
         else:
             return {"Message":""}
@@ -179,8 +181,10 @@ async def recievefromclinet():
             return  {"Message":"file001234"}
         
         if dt.MESSAGE_RECIEVE != "":
-            msg = obj_T2T.Text_2_Text_Translate(text_input= dt.MESSAGE_RECIEVE,tgt_lang="eng")
+            msg_tc = transfer_msg_toclient()
             dt.MESSAGE_RECIEVE = ""
+            msg = obj_T2T.Text_2_Text_Translate(text_input= msg_tc,tgt_lang="eng")
+           
             return {"Message":msg}
         else:
             return {"Message":""}
