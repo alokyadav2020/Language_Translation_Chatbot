@@ -1,19 +1,40 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request,send_file
 from src.LanguagetranslationLlama2.conponents.Text_Text_Translation import Text_Translation
 from src.LanguagetranslationLlama2.config.configuration import ConfigurationManager
+from src.LanguagetranslationLlama2.entity import DataTransfer
+from flask_cors import CORS
+import dataclasses
+from pathlib import Path
+from datetime import datetime
+import os
+
 from googletrans import Translator
 import speech_recognition as sr
-from googletrans import Translator 
-rec = sr.Recognizer()
-translator = Translator()
 
-obj = Text_Translation()
-translator = Translator()
+rec = sr.Recognizer()
+# translator = Translator()
+
+obj_T2T = Text_Translation()
+# translator = Translator()
+
+
+# @dataclasses.dataclass
+# class DataTransfer:
+#  MESSAGE_TRANSFER = ""
+#  MESSAGE_RECIEVE =""
+#  AUDI_FILE: Path = None
+#  AUDI_FILE_S2C:Path =None
+
+
 
 
 
 
 app = Flask(__name__)
+CORS(app)
+
+
+dt = DataTransfer()
 
 # engine = pyttsx3.init()
 
@@ -24,96 +45,197 @@ def index():
 
 
 
+
+
 @app.route("/get", methods=["GET", "POST"])
-def chat():
+def get():
     msg = request.form["msg"]
     input = msg
     print(input)
-
-    language = translator.detect(input)
-
-    print(language.lang)
-
-    if language.lang == 'en':
-         result  = obj.Text_2_Text_Translate(input,src_lang="eng",tgt_lang="eng")
-
-    elif language.lang == 'ar':
-        result  = obj.Text_2_Text_Translate(input,src_lang="arb",tgt_lang="eng")
-
-    elif language.lang == 'fr':
-        result  = obj.Text_2_Text_Translate(input,src_lang="fra",tgt_lang="eng")    
+    return input
 
 
+@app.route("/send", methods=["POST"])
+def send():
+    try:
+
+        if "audio_file" not in request.files:
+            msg = request.form["send_msg"]
+            dt.MESSAGE_TRANSFER = msg
+            print(f"this message is fron send api {dt.MESSAGE_TRANSFER}")
+            transfer_msg()
+            return ""
+        
+        file = request.files["audio_file"]
+        file.headers["Access-Controll-Allow-Origin"]="*"
+        if file:
+            # dt.AUDI_FILE_S2C = file
+
+            print("file get")
+            uniqfilename = str(datetime.now().timestamp()).replace(".","")
+            file.save(f"Data/{uniqfilename}.wav")
+            dt.AUDI_FILE_S2C = f"Data/{uniqfilename}.wav"
+            print(f"file name from sendfronclientapi is {dt.AUDI_FILE_S2C}")
+            return  ""
+    except Exception as e:
+        raise e    
+
+@app.route("/sendfromclient", methods=["POST"])
+def sendfromclient():
+    try:
+
+        if "audio_file" not in request.files:
+
+            msg = request.form["send_msg"]
+            dt.MESSAGE_RECIEVE = msg
+            print(f"this message is fron send api {dt.MESSAGE_RECIEVE}")
+            transfer_msg()
+            return "" 
+        file = request.files["audio_file"]
+        file.headers["Access-Controll-Allow-Origin"]="*"
+        if file:
+            # dt.AUDI_FILE = file
+            print("file get")
+            uniqfilename = str(datetime.now().timestamp()).replace(".","")
+            file.save(f"Data/{uniqfilename}.wav")
+            dt.AUDI_FILE = f"Data/{uniqfilename}.wav"
+            print(f"file name from sendfronclientapi is {dt.AUDI_FILE}")
+        
+            return  ""
+    except Exception as e:
+        raise e    
+
+@app.route("/recieve_file",methods=["GET"])    
+async def recieve_file():
+    try:
+        if dt.AUDI_FILE_S2C != None:
+            audifile = transfer_audiofile_to_client()
+            adfile = obj_T2T.Speech_2_Speech_Translate(audio_arrey=audifile,tgt_lang="hin")
+            dt.AUDI_FILE_S2C = None
+            audifile = None
+            return send_file(adfile)
+        if os.path.exists(audifile):
+            os.remove(audifile)
+    except Exception as e:
+        dt.AUDI_FILE_S2C = None
+        adfile =None
+        audifile = None
+        raise e        
+        
 
 
-    print("Response : ", result)
 
+@app.route("/recieve", methods=["GET"])
+async def recieve():
+    try:
+        if dt.AUDI_FILE_S2C != None:
+            return  {"Message":"file001234"}
+        
+        if dt.MESSAGE_TRANSFER != "":
+            msg = obj_T2T.Text_2_Text_Translate(text_input = dt.MESSAGE_TRANSFER,tgt_lang="hin")
+            dt.MESSAGE_TRANSFER = ""
+            return {"Message":msg}
+        else:
+            return {"Message":""}
+    except Exception as e:
+        dt.MESSAGE_TRANSFER = ""
+        msg =""
+        raise e
+
+
+    
+    
+
+@app.route("/recievefromclinet_file", methods =["GET"])
+async def   recievefromclinet_file():
+    try:
+        if dt.AUDI_FILE != None:
+            audifile = transfer_audiofile()
+            adfile = obj_T2T.Speech_2_Speech_Translate(audio_arrey=audifile,tgt_lang="eng")
+            dt.AUDI_FILE = None
+            audifile = None
+            return  send_file(adfile)
+        if os.path.exists(audifile):
+            os.remove(audifile)
+    except Exception as e:
+        dt.AUDI_FILE = None
+        audifile = None
+        adfile = None
+        raise e        
+
+    
+
+@app.route("/recievefromclinet", methods=["GET"])
+async def recievefromclinet():
+    try:
+
+        if dt.AUDI_FILE != None:
+            return  {"Message":"file001234"}
+        
+        if dt.MESSAGE_RECIEVE != "":
+            msg = obj_T2T.Text_2_Text_Translate(text_input= dt.MESSAGE_RECIEVE,tgt_lang="eng")
+            dt.MESSAGE_RECIEVE = ""
+            return {"Message":msg}
+        else:
+            return {"Message":""}
+    except Exception as e:
+        dt.MESSAGE_RECIEVE = ""
+        msg = ""
+        raise e
+       
+
+    # if dt.AUDI_FILE == None:
+    #     rec_msg =  transfer_msg_toclient()
+    #     print(f"this message is from recievefromclinet api {rec_msg}")
+    #     if rec_msg != "":
+    #         msg = obj_T2T.Text_2_Text_Translate(text_input= dt.MESSAGE_RECIEVE,src_lang="hin",tgt_lang="eng")
+    #         dt.MESSAGE_RECIEVE = ""
+    #         return {"Message":msg}
+    #     else:
+    #         return {"Message":""}
+
+    # else:    
+    #     return  {"Message":"file001234"}
+    
+    
+        
+   
+
+def transfer_msg():
+  MESSAGE_CARIER = dt.MESSAGE_TRANSFER
+  if MESSAGE_CARIER == "":
+      return ""
+  else:
+      print(f"this message is from transfer_msg function{MESSAGE_CARIER}")
+      return MESSAGE_CARIER
+  
+
+
+def transfer_msg_toclient():  
+  MESSAGE_CARIER = dt.MESSAGE_RECIEVE
+  if MESSAGE_CARIER == "":
+      return ""
+  else:
+      print(f"this message is from transfer_msg function{MESSAGE_CARIER}")
+      return MESSAGE_CARIER
+  
+
+def transfer_audiofile():
+    AUDIO_CARRIAR = dt.AUDI_FILE
+    if AUDIO_CARRIAR == None:
+        return ""
+    else:
+        return AUDIO_CARRIAR
+    
+def transfer_audiofile_to_client():
+    AUDIO_CARRIAR = dt.AUDI_FILE_S2C
+    if AUDIO_CARRIAR == None:
+        return ""
+    else:
+        return AUDIO_CARRIAR    
 
    
-    
-    return str(result)
-
-# @app.route('/record', methods=['POST'])
-# def record():
-#   if 'audio_data' not in request.files:
-#     return jsonify({'error': 'No audio data found'}), 400
-
-#     audio_file = request.files['audio_data']
-#     audio_file = request.files['audio']
-#     print("-----------")
-#     print(audio_file)
-
-#     audio_file.save('recorded_audio23.wav')
-#     rec_aud = rec.recognize_google('recorded_audio.mp3')
-#     print("Here is the audio input :" + rec_aud)
-
-
-#     # Save or process the audio data here
-#     # For example:
-#     audio_file.save('recordings/new_recording.webm')  # Adjust filename and path
-
-#     return jsonify({'message': 'Audio data received successfully!'})
-
-
-# @app.route('/process_audio', methods=['POST'])
-# def process_audio():
-#     if 'audio' not in request.files:
-#         return jsonify({'error': 'No audio file provided'})
-
-#     audio_file = request.files['audio']
-#     print("-----------")
-#     print(audio_file)
-
-#     audio_file.save('recorded_audio23.wav')
-#     rec_aud = rec.recognize_google('recorded_audio.mp3')
-#     print("Here is the audio input :" + rec_aud)
-
-# # Translate the text and display it
-#     to_translate = translator.translate(rec_aud,src="hi",dest="hi")
-#     translated_text = to_translate.text
-#     print("The translated text is: ", translated_text)
-    
-#     # Save the audio file to disk
-#     # audio_file.save('recorded_audio.wav')
-
-#     # Here, you can process the audio file as needed
-#     # For example, you can use speech-to-text APIs to transcribe the audio
-
-#     return jsonify({'message': 'Audio received and saved'})
-
-# @app.route('/record_voice', methods=['POST'])
-# def record_voice():
-#   # Get the audio data from the request.
-#   audio_data = request.data
-
-#   # Save the audio data to a file.
-#   with open('audio.wav', 'wb') as f:
-#     f.write(audio_data)
-
-#   # Return a response to the JavaScript function.
-#   return jsonify({'success': True})
-
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port= 8080)
+    app.run(host="0.0.0.0",port=8080)
 
 

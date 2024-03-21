@@ -1,6 +1,6 @@
-<link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+<!-- <link href="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
 <script src="//maxcdn.bootstrapcdn.com/bootstrap/4.1.1/js/bootstrap.min.js"></script>
-<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script> -->
 
 <!DOCTYPE html>
 <html>
@@ -12,26 +12,26 @@
 	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.5.0/css/all.css"
 		integrity="sha384-B4dIYHKNBt8Bc12p+WXckhzcICo0wtJAoU8YZTY5qE0Id1GSseTk6S+L3BlXeVIU" crossorigin="anonymous">
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-	<!-- <script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script> -->
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css')}}" />
 </head>
 
 
 <body>
-	<div class="container-fluid h-100">
-		<div class="row justify-content-center h-100">
+	<div class="container-fluid">
+		<div class="row justify-content-center">
 			<div class="col-md-8 col-xl-6 chat">
 				<div class="card">
 					<div class="card-header msg_head">
 						<div class="d-flex bd-highlight">
 							<div class="img_cont">
-								<!-- <img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png" class="rounded-circle user_img"> -->
-								<img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img">
+								<img src="https://i.ibb.co/fSNP7Rz/icons8-chatgpt-512.png"
+									class="rounded-circle user_img">
+								<!-- <img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img"> -->
 								<span class="online_icon"></span>
 							</div>
 							<div class="user_info">
-								<span>Server Agent Chatbot</span>
-								<p>Translator</p>
+								<span>Server Chatbot Agent </span>
+								<p>Translation chatbot</p>
 							</div>
 						</div>
 					</div>
@@ -46,11 +46,10 @@
 							<div class="input-group-append">
 								<button type="submit" id="send" class="input-group-text send_btn"><i
 										class="fas fa-location-arrow"></i></button>
-							</div>
-							<div class="input-group-append">
-								<button id="record-button" onclick="recordVoice">Record</button>
-								<button id="stop-button" disabled>Stop</button>
-								<p id="recording-status"></p>
+								<button type="button" id="record" value="Start"
+									class="input-group-text send_btn">Start</button>
+									<button type="button" id="file" value="file"
+									class="input-group-text send_btn">File</button>
 							</div>
 						</form>
 					</div>
@@ -75,162 +74,174 @@
 
 				$.ajax({
 					data: {
-						msg: rawText,
+						send_msg: rawText,
 					},
 					type: "POST",
-					url: "/get",
+					url: "/send",
 				}).done(function (data) {
-					var botHtml = '<div class="d-flex justify-content-start mb-4"><div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div><div class="msg_cotainer">' + data + '<span class="msg_time">' + str_time + '</span></div></div>';
-					$("#messageFormeight").append($.parseHTML(botHtml));
+					// var botHtml = '<div class="d-flex justify-content-start mb-4"><div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div><div class="msg_cotainer">' + data + '<span class="msg_time">' + str_time + '</span></div></div>';
+					// $("#messageFormeight").append($.parseHTML(botHtml));
 				});
 				event.preventDefault();
 			});
-
-
 		});
 	</script>
+
+	<!-- Voice Recoding -->
+	<script>
+		str_time = '0.0.0'
+
+		var voiceBtn = document.getElementById('record');
+		var messagebox = document.getElementById('messageFormeight')
+		voiceBtn.innerText = "Start";
+		voiceBtn.value = "Start"
+		let mediaRecorder, chunks = [], audioURL = ''
+
+		async function recodring() {
+			if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+				console.log('mediaDevices supported..')
+
+				navigator.mediaDevices.getUserMedia({
+					audio: true
+				}).then(stream => {
+					mediaRecorder = new MediaRecorder(stream)
+
+					mediaRecorder.ondataavailable = (e) => {
+						chunks.push(e.data)
+					}
+
+					console.log('on stop......')
+
+					mediaRecorder.onstop = () => {
+						const blob = new Blob(chunks, { 'type': 'audio/ogg; codecs=opus' })
+						chunks = []
+						audioURL = window.URL.createObjectURL(blob)
+						const audio = document.createElement('audio')
+						audio.controls = true
+						audio.crossOrigin = true
+						audio.src = audioURL
+						const divtag = document.createElement('div')
+						divtag.classList.add('d-flex')
+						divtag.classList.add('justify-content-end')
+						divtag.classList.add('mb-4')
+						divtag.appendChild(audio)
+						messagebox.append(divtag)
+
+						let formData = new FormData();
+						formData.append("audio_file", blob);
+						fetch("http://127.0.0.1:8080/send", {
+							method: "POST",
+							cache: "no-cache",
+							body: formData
+						}).then(resp => {
+							if (resp.status === 200) {
+								console.log("file send")
+							} else {
+								console.error("Error:", resp)
+							}
+						}).catch(err => {
+							console.error(err);
+						});
+
+						console.log(audioURL)
+						console.log("stop recording on onstop")
+
+					}
+				}).catch(error => {
+					console.log('Following error has occured : ', error);
+				})
+			}
+
+		}
+
+		recodring();
+
+
+		voiceBtn.addEventListener('click', async () => {
+			
+
+
+			if (voiceBtn.innerHTML == "Start") {
+				voiceBtn.value = "Stop"
+				voiceBtn.innerText = "Stop";
+
+
+				mediaRecorder.start();
+
+			}
+
+			else if (voiceBtn.innerHTML == "Stop") {
+				voiceBtn.value = "Start"
+				voiceBtn.innerText = "Start";
+				console.log("enter into stop button call");
+				mediaRecorder.stop();
+			}
+
+		})
+
+	</script>
+
+	<!-- retrievewing data from server in 1 sec -->
 
 	<script>
-		function recordVoice() {
-			// Create a MediaRecorder object.
-			const mediaRecorder = new MediaRecorder();
+		const date = new Date();
+		const hour = date.getHours();
+		const minute = date.getMinutes();
+		const str_time = hour + ":" + minute;
 
-			// Start recording the user's voice.
-			mediaRecorder.start();
+		async function callApi() {
 
-			// Once the audio data has been recorded, send it to a Flask route.
-			mediaRecorder.ondataavailable = function (event) {
-				const audioData = event.data;
+			try {
 
-				// Send the audio data to a Flask route using an AJAX request.
-				$.ajax({
-					url: '/record_voice',
-					type: 'POST',
-					data: audioData,
-					success: function (response) {
-						// The audio data has been saved to a file.
+				const response = await fetch('http://127.0.0.1:8080/recievefromclinet'); // Replace with your actual API URL
+				if (!response.ok) {
+					throw new Error(`API call failed with status ${response.status}`);
+				}
+
+				if (response.headers.get('Content-Type') === 'application/json') {
+					const data1 = await response.json();
+
+					const data = data1["Message"]
+					if (data != "") {
+						if (data == "file001234") {
+							fetch('http://127.0.0.1:8080/recievefromclinet_file') // Replace with your server-side route
+								.then(response => response.blob())
+								.then(blob => {
+									const audioURL = URL.createObjectURL(blob);
+									const audio = document.createElement('audio')
+									audio.controls = true
+									audio.crossOrigin = true
+									audio.src = audioURL
+									const messagebox = document.getElementById('messageFormeight')
+									const divtag = document.createElement('div')
+									divtag.classList.add('d-flex')
+									divtag.classList.add('justify-content-start')
+									divtag.classList.add('mb-4')
+									divtag.appendChild(audio)
+									messagebox.append(divtag)
+								})
+								.catch(error => {
+									console.error('Error fetching audio:', error);
+								});
+							console.log("this is file")
+
+						}
+						else {
+							var botHtml = '<div class="d-flex justify-content-start mb-4"><div class="img_cont_msg"><img src="https://i.ibb.co/d5b84Xw/Untitled-design.png" class="rounded-circle user_img_msg"></div><div class="msg_cotainer">' + data + '<span class="msg_time">' + str_time + '</span></div></div>';
+							$("#messageFormeight").append($.parseHTML(botHtml));
+						}
 					}
-				});
-			};
 
-			// Stop recording the user's voice.
-			mediaRecorder.stop();
+				}
+			} catch (error) {
+				console.error("Error fetching data:", error);
+			}
 		}
+
+		setInterval(callApi, 1000);
+
+
 	</script>
-
-	<!-- <script>
-
-		const recordButton = document.getElementById('record-button');
-		const stopButton = document.getElementById('stop-button');
-		const recordingStatus = document.getElementById('recording-status');
-
-		let recorder;
-
-		recordButton.addEventListener('click', () => {
-			navigator.mediaDevices.getUserMedia({ audio: true })
-				.then(stream => {
-					recorder = RecordRTC(stream, {
-						type: 'audio',
-						// mimeType: 'audio/webm' // Adjust mimeType as needed
-					});
-					// recorder = new MediaRecorder(stream);
-                    // const audioChunks = [];
-
-                    // recorder.addEventListener('dataavailable', event => {
-                    //     audioChunks.push(event.data);
-					recorder.start();
-					recordingStatus.textContent = 'Recording...';
-					recordButton.disabled = true;
-					stopButton.disabled = false;
-				})
-				.catch(error => {
-					console.error('Error accessing microphone:', error);
-					recordingStatus.textContent = 'Error accessing microphone.';
-				});
-		});
-
-		stopButton.addEventListener('click', () => {
-			recorder.stop(() => {
-				recordingStatus.textContent = 'Stopped recording.';
-				stopButton.disabled = true;
-				recordButton.disabled = false;
-
-				// Send audio data to Flask using FormData
-				const formData = new FormData();
-				formData.append('audio_data', recorder.blob);
-
-				fetch('/record', {
-					method: 'POST',
-					body: formData
-				})
-					.then(response => response.text())
-					.then(message => {
-						console.log('Server response:', message);
-						recordingStatus.textContent = message;
-					})
-					.catch(error => {
-						console.error('Error sending audio data:', error);
-						recordingStatus.textContent = 'Error sending audio data.';
-					});
-			});
-		});
-
-
-	</script> -->
-
-	<!-- <script>
-		const recordBtn = document.getElementById('record-btn');
-
-		recordBtn.addEventListener('click', () => {
-			navigator.mediaDevices.getUserMedia({ audio: true })
-				.then(stream => {
-					const mediaRecorder = new MediaRecorder(stream);
-					const audioChunks = [];
-
-
-					mediaRecorder.addEventListener('dataavailable', event => {
-						audioChunks.push(event.data);
-					});
-
-
-					mediaRecorder.addEventListener('stop', () => {
-						const audioBlob = new Blob(audioChunks);
-						const audioUrl = URL.createObjectURL(audioBlob);
-
-						// Send the audio data to Flask backend
-						sendDataToFlask(audioBlob);
-						// mediaRecorder.stop();
-					});
-
-					mediaRecorder.start();
-
-					setTimeout(() => {
-						mediaRecorder.stop();
-					}, 3000);
-
-
-				})
-				.catch(error => {
-					console.error('Error accessing microphone:', error);
-				});
-		});
-
-		function sendDataToFlask(audioBlob) {
-			const formData = new FormData();
-			formData.append('audio', audioBlob);
-
-			fetch('/process_audio', {
-				method: 'POST',
-				body: formData
-			})
-				.then(response => response.json())
-				.then(data => {
-					console.log('Response from Flask:', data);
-					// Handle response from Flask
-				})
-				.catch(error => console.error('Error:', error));
-		}
-	</script> -->
 
 </body>
 

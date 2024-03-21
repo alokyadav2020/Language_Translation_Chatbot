@@ -9,5 +9,9 @@ flask
 gTTS
 SpeechRecognition
 pyaudio
+flask_cors
+flask[async]
+torchaudio
+pydub
 
 -e .
