@@ -9,6 +9,7 @@ import dataclasses
 from pathlib import Path
 from datetime import datetime
 import os
+import base64
 
 from googletrans import Translator
 import speech_recognition as sr
@@ -31,7 +32,6 @@ obj_T2T = Text_Translation()
 
 
 
-
 app = Flask(__name__)
 CORS(app)
 
@@ -40,6 +40,12 @@ CORS(app)
 dt = DataTransfer()
 
 # engine = pyttsx3.init()
+
+# def save_base64_audio(base64_string, filename):
+#     audio_data = base64.b64decode(base64_string)
+#     with open(filename, "wb") as f:
+#         f.write(audio_data)
+#     f.close()
 
 
 @app.route("/")
@@ -63,25 +69,74 @@ def send():
     try:
 
         if "audio_file" not in request.files:
+
             msg = request.form["send_msg"]
             dt.MESSAGE_TRANSFER = msg
             print(f"this message is fron send api {dt.MESSAGE_TRANSFER}")
             transfer_msg()
             return ""
-        
-        file = request.files["audio_file"]
        
-        if file:
-            # dt.AUDI_FILE_S2C = file
+        if request.files['audio_file']:
+            file = request.files["audio_file"]
+        
+            if file:
+                # dt.AUDI_FILE_S2C = file
 
-            print("file get")
-            uniqfilename = str(datetime.now().timestamp()).replace(".","")
-            file.save(f"Data/{uniqfilename}.wav")
-            dt.AUDI_FILE_S2C = f"Data/{uniqfilename}.wav"
-            print(f"file name from sendfronclientapi is {dt.AUDI_FILE_S2C}")
-            return  ""
+                print("file get")
+                uniqfilename = str(datetime.now().timestamp()).replace(".","")
+                # file.save(f"Data/{uniqfilename}.wav")
+                file.save(f"Data/{file.filename}")
+                # with open(f"Data/{file.filename}", 'wb') as f:
+                #     f.write(file.read())
+                # with open(file, 'r') as f: 
+                
+               
+                dt.AUDI_FILE_S2C = f"Data/{file.filename}"
+                print(f"file name from sendfronclientapi is {dt.AUDI_FILE_S2C}")
+                return  ""
+            
+        # elif request.files["file"]:
+        #     files = request.files["file"]
+        #     files.save(f"Data/{files.filename}")   
+        #     return  ""
+
+        # elif request.form["send_msg"]:
+        #     msg = request.form["send_msg"]
+        #     dt.MESSAGE_TRANSFER = msg
+        #     print(f"this message is fron send api {dt.MESSAGE_TRANSFER}")
+        #     transfer_msg()
+        #     return ""
+
     except Exception as e:
         raise e    
+    
+@app.route("/recive_file_from_servr", methods=["POST"]) 
+def recive_file_from_servr():
+    try:
+        file = request.files["file"]
+        file.save(f"Data/{file.filename}")
+        dt.DOC_FILE_S2C = f"Data/{file.filename}"
+       
+        return ""
+
+
+    except Exception as e:
+        raise e    
+    
+
+@app.route("/recive_file_from_client", methods=["POST"]) 
+def recive_file_from_client():
+    try:
+        file = request.files["file"]
+        file.save(f"Data/{file.filename}")
+        dt.DOC_FILE_C2S = f"Data/{file.filename}"
+       
+        return ""
+
+
+    except Exception as e:
+        raise e    
+
 
 @app.route("/sendfromclient", methods=["POST"])
 def sendfromclient():
@@ -118,15 +173,32 @@ async def recieve_file():
             audifile = transfer_audiofile_to_client()
             # adfile = obj_T2T.Speech_2_Speech_Translate(audio_arrey=audifile,tgt_lang="hin")
             dt.AUDI_FILE_S2C = None
-            
             return send_file(audifile)
-        if os.path.exists(audifile):
-            os.remove(audifile)
+        
+       
+       
     except Exception as e:
         dt.AUDI_FILE_S2C = None
         # adfile =None
         audifile = None
         raise e        
+    
+@app.route("/recieve_DOC_File",methods=["GET"])   
+async def recieve_DOC_File():
+    try:
+         if dt.DOC_FILE_S2C != None:
+            Doc_file =transfer_DOC_file_to_clint()
+            dt.DOC_FILE_S2C =None
+            return send_file(Doc_file, as_attachment=True)
+
+
+    except Exception as e:
+        Doc_file= None
+        dt.DOC_FILE_S2C =None
+
+        raise e  
+    
+
         
 
 
@@ -136,11 +208,13 @@ async def recieve():
     try:
         if dt.AUDI_FILE_S2C != None:
             return  {"Message":"file001234"}
+        if dt.DOC_FILE_S2C != None:
+            return {"Message":"Doc_file_001234"}
         
         if dt.MESSAGE_TRANSFER != "":
             msg_tra = transfer_msg()
             dt.MESSAGE_TRANSFER = ""
-            msg = obj_T2T.Text_2_Text_Translate(text_input = msg_tra,tgt_lang="arb")
+            msg = obj_T2T.Text_2_Text_Translate(text_input = msg_tra,src_lang="eng",tgt_lang="arb")
             
             return {"Message":msg}
         else:
@@ -171,6 +245,21 @@ async def   recievefromclinet_file():
         # adfile = None
         raise e        
 
+
+@app.route("/recieve_DOC_File_TO_Server",methods=["GET"])   
+async def recieve_DOC_File_TO_Server():
+    try:
+         if dt.DOC_FILE_C2S != None:
+            Doc_file = transfer_DOC_file_to_server()
+            dt.DOC_FILE_C2S =None
+            return send_file(Doc_file, as_attachment=True)
+
+
+    except Exception as e:
+        Doc_file= None
+        dt.DOC_FILE_S2C =None
+
+        raise e  
     
 
 @app.route("/recievefromclinet", methods=["GET"])
@@ -179,11 +268,13 @@ async def recievefromclinet():
 
         if dt.AUDI_FILE != None:
             return  {"Message":"file001234"}
+        if dt.DOC_FILE_C2S != None:
+           return {"Message":"Doc_file_001234"}
         
         if dt.MESSAGE_RECIEVE != "":
             msg_tc = transfer_msg_toclient()
             dt.MESSAGE_RECIEVE = ""
-            msg = obj_T2T.Text_2_Text_Translate(text_input= msg_tc,tgt_lang="eng")
+            msg = obj_T2T.Text_2_Text_Translate(text_input= msg_tc,src_lang="arb",tgt_lang="eng")
            
             return {"Message":msg}
         else:
@@ -236,6 +327,23 @@ def transfer_audiofile():
         return ""
     else:
         return AUDIO_CARRIAR
+    
+
+def transfer_DOC_file_to_server():
+    Doct_file = dt.DOC_FILE_C2S
+    if Doct_file == None:
+        return ""
+    else:
+        return Doct_file    
+    
+
+    
+def transfer_DOC_file_to_clint():
+    Doct_file = dt.DOC_FILE_S2C
+    if Doct_file == None:
+        return ""
+    else:
+        return Doct_file    
     
 def transfer_audiofile_to_client():
     AUDIO_CARRIAR = dt.AUDI_FILE_S2C

@@ -3,8 +3,8 @@ import torchaudio
 from src.LanguagetranslationLlama2.constants import DIRECTORY,FILENAME
 import os
 import torch
-import wave
-from io import BytesIO
+# import wave
+# from io import BytesIO
 
 
 class Text_Translation:
@@ -30,12 +30,12 @@ class Text_Translation:
         # self.sample_rate = self.S2ST_Model.config.sampling_rate
 
 
-    def Text_2_Text_Translate(self,text_input , tgt_lang:str):
+    def Text_2_Text_Translate(self,text_input ,src_lang, tgt_lang:str):
 
         try:
             print(self.device)
             self.T2TT_Model.to(self.device)
-            text_inputs = self.Processor(text = text_input,  return_tensors="pt").to(self.device)
+            text_inputs = self.Processor(text = text_input, src_lang=src_lang, return_tensors="pt").to(self.device)
             output_tokens = self.T2TT_Model.generate(**text_inputs, tgt_lang=tgt_lang).to(self.device)
             result  = self.Processor.decode(output_tokens[0].tolist(), skip_special_tokens=True)
             return result
