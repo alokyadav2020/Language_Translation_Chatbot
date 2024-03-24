@@ -17,7 +17,7 @@ import speech_recognition as sr
 # rec = sr.Recognizer()
 
 
-obj_T2T = Text_Translation()
+# obj_T2T = Text_Translation()
 
 
 
@@ -84,14 +84,14 @@ def send():
 
                 print("file get")
                 uniqfilename = str(datetime.now().timestamp()).replace(".","")
-                # file.save(f"Data/{uniqfilename}.wav")
-                file.save(f"Data/{file.filename}")
+                file.save(f"Data/{uniqfilename}.webm")
+                # file.save(f"Data/{file.filename}")
                 # with open(f"Data/{file.filename}", 'wb') as f:
                 #     f.write(file.read())
                 # with open(file, 'r') as f: 
                 
                
-                dt.AUDI_FILE_S2C = f"Data/{file.filename}"
+                dt.AUDI_FILE_S2C = f"Data/{uniqfilename}.webm"
                 print(f"file name from sendfronclientapi is {dt.AUDI_FILE_S2C}")
                 return  ""
             
