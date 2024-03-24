@@ -17,7 +17,7 @@ import speech_recognition as sr
 # rec = sr.Recognizer()
 
 
-# obj_T2T = Text_Translation()
+obj_T2T = Text_Translation()
 
 
 
